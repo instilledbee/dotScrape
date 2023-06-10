@@ -45,7 +45,9 @@ namespace DotScrape.HtmlAgilityPack
                     var selector = attr.Xpath;
 
                     var node = _htmlDocument.DocumentNode.SelectSingleNode(selector);
-                    MapProperty(result, prop, node);
+
+                    if (node != null)
+                        MapProperty(result, prop, node);
                 }
             }
         }
@@ -64,7 +66,9 @@ namespace DotScrape.HtmlAgilityPack
                     var selector = attr.CssSelector;
 
                     var node = _htmlDocument.DocumentNode.QuerySelectorAll(selector).FirstOrDefault();
-                    MapProperty(result, prop, node);
+
+                    if (node != null)
+                        MapProperty(result, prop, node);
                 }
             }
         }
@@ -87,7 +91,7 @@ namespace DotScrape.HtmlAgilityPack
             var trimStringAttribute = prop.GetCustomAttribute<TrimStringAttribute>();
             if (trimStringAttribute != null)
             {
-                stringData = stringData.Trim();
+                stringData = stringData?.Trim();
             }
 
             var substringAttribute = prop.GetCustomAttribute<SubstringAttribute>();

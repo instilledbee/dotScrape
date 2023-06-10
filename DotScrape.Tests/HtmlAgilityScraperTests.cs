@@ -22,10 +22,24 @@ namespace DotScrape.Tests
         }
 
         [Test]
-        public void HtmlAgilityScraper_PopulatesElementsOfSingleModel_UsingViaCssAttributes()
+        public void HtmlAgilityScraper_PopulatesElementsOfSingleModel_UsingCssSelectors()
         {
             var scraper = new HtmlAgilityScraper(_htmlDoc);
             var model = scraper.Scrape<ProfileInfoViaCss>();
+
+            Assert.IsNotNull(model);
+            Assert.That(model.DisplayName, Is.EqualTo("Junvic"));
+            Assert.That(model.Username, Is.EqualTo("instilledbee"));
+            Assert.That(model.Followers, Is.EqualTo(10));
+            Assert.That(model.Following, Is.EqualTo(19));
+            Assert.That(model.ProfilePicUrl, Is.EqualTo(@"https://avatars.githubusercontent.com/u/5665389?v=4"));
+        }
+
+        [Test]
+        public void HtmlAgilityScraper_PopulatesElementsOfSingleModel_UsingXPath()
+        {
+            var scraper = new HtmlAgilityScraper(_htmlDoc);
+            var model = scraper.Scrape<ProfileInfoViaXPath>();
 
             Assert.IsNotNull(model);
             Assert.That(model.DisplayName, Is.EqualTo("Junvic"));
@@ -53,6 +67,27 @@ namespace DotScrape.Tests
         public int? Following { get; set; }
 
         [ViaCss("img.avatar.avatar-user.width-full")]
+        [FromAttribute("src")]
+        public string? ProfilePicUrl { get; set; }
+    }
+
+    internal class ProfileInfoViaXPath
+    {
+        [ViaXPath(@"//h1[@class='vcard-names']//span[contains(concat(' ',normalize-space(@class),' '),'p-name')]")]
+        [TrimString]
+        public string? DisplayName { get; set; }
+
+        [ViaXPath(@"//h1[@class='vcard-names']//span[contains(concat(' ',normalize-space(@class),' '),'p-nickname')]")]
+        [TrimString]
+        public string? Username { get; set; }
+
+        [ViaXPath(@"//div[contains(concat(' ',normalize-space(@class),' '),'flex-order-1')]//a[1]//span[contains(concat(' ',normalize-space(@class),' '),'text-bold')]")]
+        public int? Followers { get; set; }
+
+        [ViaXPath(@"//div[contains(concat(' ',normalize-space(@class),' '),'flex-order-1')]//a[2]//span[contains(concat(' ',normalize-space(@class),' '),'text-bold')]")]
+        public int? Following { get; set; }
+
+        [ViaXPath(@"//img[contains(concat(' ',normalize-space(@class),' '),'avatar avatar-user')]")]
         [FromAttribute("src")]
         public string? ProfilePicUrl { get; set; }
     }
