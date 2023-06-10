@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotScrape.StringFormatAttributes
+namespace DotScrape.Attributes.Formatters
 {
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public sealed class SubstringAttribute : Attribute, IStringFormatAttribute

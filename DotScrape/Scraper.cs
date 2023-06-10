@@ -3,11 +3,8 @@
 namespace DotScrape
 {
 
-    public interface IScraper { }
-
-    public interface IScraper<TModel> : IScraper
-        where TModel: new()
+    public interface IScraper 
     {
-        TModel Parse();
+        TModel Scrape<TModel>() where TModel : new();
     }
 }

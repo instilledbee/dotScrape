@@ -1,15 +1,15 @@
-﻿using dotScrape.POC;
+﻿using DotScrape.HtmlAgilityPack;
 using HtmlAgilityPack;
 using System.Text.Json;
 
-namespace dotScrape.Sample
+namespace DotScrape.Sample
 {
     internal class Program
     {
         static void Main(string[] args)
         {
             var htmlDoc = new HtmlWeb().Load(@"https://tipidpc.com/catalog.php?cat=4&sec=s");
-            var scraper = new HtmlAgilityScraper<ItemForSale>(htmlDoc);
+            var scraper = new HtmlAgilityScraper(htmlDoc);
 
             var data = scraper.Parse();
 

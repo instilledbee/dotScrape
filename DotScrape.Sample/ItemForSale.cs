@@ -1,7 +1,7 @@
-﻿using DotScrape.SelectorAttributes;
-using DotScrape.StringFormatAttributes;
+﻿using DotScrape.Attributes.Formatters;
+using DotScrape.Attributes.Selectors;
 
-namespace dotScrape.Sample
+namespace DotScrape.Sample
 {
     internal class ItemForSale
     {

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DotScrape.SelectorAttributes
+namespace DotScrape.Attributes.Selectors
 {
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public sealed class ViaXPathAttribute : Attribute

@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\dotScrape.POC\dotScrape.POC.csproj" />
+    <ProjectReference Include="..\DotScrape.HtmlAgilityPack\DotScrape.HtmlAgilityPack.csproj" />
   </ItemGroup>
 
 </Project>

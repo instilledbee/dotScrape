@@ -1,4 +1,4 @@
-﻿namespace DotScrape.StringFormatAttributes
+﻿namespace DotScrape.Attributes.Formatters
 {
     public interface IStringFormatAttribute
     {

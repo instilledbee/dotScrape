@@ -1,6 +1,6 @@
-﻿using DotScrape;
-using DotScrape.SelectorAttributes;
-using DotScrape.StringFormatAttributes;
+﻿using DotScrape.Attributes.Extractors;
+using DotScrape.Attributes.Formatters;
+using DotScrape.Attributes.Selectors;
 using Fizzler.Systems.HtmlAgilityPack;
 using HtmlAgilityPack;
 using System;
@@ -8,10 +8,9 @@ using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 
-namespace dotScrape.POC
+namespace DotScrape.HtmlAgilityPack
 {
-    public class HtmlAgilityScraper<TModel> : IScraper<TModel>
-        where TModel : new()
+    public class HtmlAgilityScraper : IScraper
     {
         private readonly HtmlDocument _htmlDocument;
 
@@ -22,7 +21,7 @@ namespace dotScrape.POC
 
         public Uri BaseUrl { get; }
 
-        public TModel Parse()
+        public TModel Scrape<TModel>() where TModel: new()
         {
             var result = new TModel();
 
@@ -32,7 +31,7 @@ namespace dotScrape.POC
             return result;
         }
 
-        private void MapPropertiesWithXPathSelectors(TModel result)
+        private void MapPropertiesWithXPathSelectors<TModel>(TModel result)
         {
             var mappableXPathProps = result.GetType()
                                          .GetProperties()
@@ -46,36 +45,12 @@ namespace dotScrape.POC
                     var selector = attr.Xpath;
 
                     var node = _htmlDocument.DocumentNode.SelectSingleNode(selector);
-                    var stringData = node?.InnerText;
-
-                    var substringAttribute = prop.GetCustomAttribute<SubstringAttribute>();
-
-                    if (substringAttribute != null)
-                    {
-                        var startIndex = substringAttribute.StartIndex >= 0 ? substringAttribute.StartIndex : 0;
-                        var length = substringAttribute.Length >= 0 ? substringAttribute.Length : (stringData.Length - startIndex);
-
-                        stringData = stringData.Substring(startIndex, length);
-                    }
-
-                    if (prop.PropertyType == typeof(string))
-                    {
-                        prop.SetValue(result, stringData);
-                        continue;
-                    }
-
-                    var converter = TypeDescriptor.GetConverter(prop.PropertyType);
-
-                    if (converter != null)
-                    {
-                        var convertedValue = converter.ConvertFrom(stringData);
-                        prop.SetValue(result, convertedValue);
-                    }
+                    MapProperty(result, prop, node);
                 }
             }
         }
 
-        private void MapPropertiesWithCssSelectors(TModel result)
+        private void MapPropertiesWithCssSelectors<TModel>(TModel result)
         {
             var mappableCssProps = result.GetType()
                                          .GetProperties()
@@ -89,32 +64,54 @@ namespace dotScrape.POC
                     var selector = attr.CssSelector;
 
                     var node = _htmlDocument.DocumentNode.QuerySelectorAll(selector).FirstOrDefault();
-                    var stringData = node?.InnerText;
-
-                    var substringAttribute = prop.GetCustomAttribute<SubstringAttribute>();
-
-                    if (substringAttribute != null)
-                    {
-                        var startIndex = substringAttribute.StartIndex >= 0 ? substringAttribute.StartIndex : 0;
-                        var length = substringAttribute.Length >= 0 ? substringAttribute.Length : (stringData.Length - startIndex);
-
-                        stringData = stringData.Substring(startIndex, length);
-                    }
-
-                    if (prop.PropertyType == typeof(string))
-                    {
-                        prop.SetValue(result, stringData);
-                        continue;
-                    }
-
-                    var converter = TypeDescriptor.GetConverter(prop.PropertyType);
-
-                    if (converter != null)
-                    {
-                        var convertedValue = converter.ConvertFrom(stringData);
-                        prop.SetValue(result, convertedValue);
-                    }
+                    MapProperty(result, prop, node);
                 }
+            }
+        }
+
+        private void MapProperty<TModel>(TModel result, PropertyInfo prop, HtmlNode node)
+        {
+            var stringData = node?.InnerText;
+
+            var fromAttributeAttribute = prop.GetCustomAttribute<FromAttributeAttribute>();
+
+            // TODO: Use visitor pattern for attribute logic
+            if (fromAttributeAttribute != null)
+            {
+                var elementAttribute = node.GetAttributes().FirstOrDefault(a => a.Name == fromAttributeAttribute.AttributeName);
+
+                if (elementAttribute != null)
+                    stringData = elementAttribute.Value;
+            }
+
+            var trimStringAttribute = prop.GetCustomAttribute<TrimStringAttribute>();
+            if (trimStringAttribute != null)
+            {
+                stringData = stringData.Trim();
+            }
+
+            var substringAttribute = prop.GetCustomAttribute<SubstringAttribute>();
+
+            if (substringAttribute != null)
+            {
+                var startIndex = substringAttribute.StartIndex >= 0 ? substringAttribute.StartIndex : 0;
+                var length = substringAttribute.Length >= 0 ? substringAttribute.Length : (stringData.Length - startIndex);
+
+                stringData = stringData.Substring(startIndex, length);
+            }
+
+            if (prop.PropertyType == typeof(string))
+            {
+                prop.SetValue(result, stringData);
+                return;
+            }
+
+            var converter = TypeDescriptor.GetConverter(prop.PropertyType);
+
+            if (converter != null)
+            {
+                var convertedValue = converter.ConvertFrom(stringData);
+                prop.SetValue(result, convertedValue);
             }
         }
     }
