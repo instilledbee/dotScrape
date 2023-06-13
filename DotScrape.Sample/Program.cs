@@ -11,7 +11,7 @@ namespace DotScrape.Sample
             var htmlDoc = new HtmlWeb().Load(@"https://tipidpc.com/catalog.php?cat=4&sec=s");
             var scraper = new HtmlAgilityScraper(htmlDoc);
 
-            var data = scraper.Scrape<ItemForSale>();
+            var data = scraper.Scrape<ItemsForSale>();
 
             Console.WriteLine(JsonSerializer.Serialize(data));
         }

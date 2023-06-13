@@ -4,6 +4,8 @@ using DotScrape.Attributes.Selectors;
 using Fizzler.Systems.HtmlAgilityPack;
 using HtmlAgilityPack;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
@@ -25,13 +27,13 @@ namespace DotScrape.HtmlAgilityPack
         {
             var result = new TModel();
 
-            MapPropertiesWithCssSelectors(result);
-            MapPropertiesWithXPathSelectors(result);
+            MapPropertiesWithCssSelectors(result, _htmlDocument.DocumentNode);
+            MapPropertiesWithXPathSelectors(result, _htmlDocument.DocumentNode);
 
             return result;
         }
 
-        private void MapPropertiesWithXPathSelectors<TModel>(TModel result)
+        private void MapPropertiesWithXPathSelectors<TModel>(TModel result, HtmlNode rootNode)
         {
             var mappableXPathProps = result.GetType()
                                          .GetProperties()
@@ -44,15 +46,22 @@ namespace DotScrape.HtmlAgilityPack
                     var attr = prop.GetCustomAttribute<ViaXPathAttribute>();
                     var selector = attr.Xpath;
 
-                    var node = _htmlDocument.DocumentNode.SelectSingleNode(selector);
+                    var matchingNodes = rootNode.SelectNodes(selector);
 
-                    if (node != null)
+                    if (prop.PropertyType.GetInterface(nameof(ICollection)) != null)
+                    {
+                        MapCollectionProperty(result, prop, matchingNodes);
+                    }
+                    else
+                    {
+                        var node = matchingNodes.FirstOrDefault();
                         MapProperty(result, prop, node);
+                    }
                 }
             }
         }
 
-        private void MapPropertiesWithCssSelectors<TModel>(TModel result)
+        private void MapPropertiesWithCssSelectors<TModel>(TModel result, HtmlNode rootNode)
         {
             var mappableCssProps = result.GetType()
                                          .GetProperties()
@@ -65,12 +74,41 @@ namespace DotScrape.HtmlAgilityPack
                     var attr = prop.GetCustomAttribute<ViaCssAttribute>();
                     var selector = attr.CssSelector;
 
-                    var node = _htmlDocument.DocumentNode.QuerySelectorAll(selector).FirstOrDefault();
+                    var matchingNodes = rootNode.QuerySelectorAll(selector);
 
-                    if (node != null)
-                        MapProperty(result, prop, node);
+                    if (matchingNodes != null)
+                    {
+                        if (prop.PropertyType.GetInterface(nameof(ICollection)) != null)
+                        {
+                            MapCollectionProperty(result, prop, matchingNodes);
+                        }
+                        else
+                        {
+                            var node = matchingNodes.FirstOrDefault();
+                            MapProperty(result, prop, node);
+                        }
+                    }
                 }
             }
+        }
+
+        private void MapCollectionProperty<TModel>(TModel result, PropertyInfo collectionProp, IEnumerable<HtmlNode> matchingNodes)
+        {
+            var collectionType = collectionProp.PropertyType;
+            var collection = Activator.CreateInstance(collectionType);
+            var genericType = collectionType.GetGenericArguments()[0];
+
+            foreach (var node in matchingNodes)
+            {
+                var mappedItem = Activator.CreateInstance(genericType);
+
+                MapPropertiesWithCssSelectors(mappedItem, node);
+                MapPropertiesWithXPathSelectors(mappedItem, node);
+
+                collectionType.GetMethod("Add").Invoke(collection, new[] { mappedItem });
+            }
+
+            collectionProp.SetValue(result, collection);
         }
 
         private void MapProperty<TModel>(TModel result, PropertyInfo prop, HtmlNode node)
@@ -99,7 +137,7 @@ namespace DotScrape.HtmlAgilityPack
             if (substringAttribute != null)
             {
                 var startIndex = substringAttribute.StartIndex >= 0 ? substringAttribute.StartIndex : 0;
-                var length = substringAttribute.Length >= 0 ? substringAttribute.Length : (stringData.Length - startIndex);
+                var length = substringAttribute.Length >= 0 ? substringAttribute.Length : ((stringData?.Length ?? 0) - startIndex);
 
                 stringData = stringData.Substring(startIndex, length);
             }
