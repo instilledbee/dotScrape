@@ -1,5 +1,4 @@
-﻿using DotScrape.Attributes.Extractors;
-using DotScrape.Attributes.Formatters;
+﻿using DotScrape.Attributes;
 using DotScrape.Attributes.Selectors;
 using Fizzler.Systems.HtmlAgilityPack;
 using HtmlAgilityPack;
@@ -21,8 +20,6 @@ namespace DotScrape.HtmlAgilityPack
             _htmlDocument = htmlDocument;
         }
 
-        public Uri BaseUrl { get; }
-
         public TModel Scrape<TModel>() where TModel: new()
         {
             var result = new TModel();
@@ -39,24 +36,21 @@ namespace DotScrape.HtmlAgilityPack
                                          .GetProperties()
                                          .Where(p => Attribute.IsDefined(p, typeof(ViaXPathAttribute)));
 
-            if (mappableXPathProps.Any())
+            foreach (var prop in mappableXPathProps)
             {
-                foreach (var prop in mappableXPathProps)
+                var attr = prop.GetCustomAttribute<ViaXPathAttribute>();
+                var selector = attr.Xpath;
+
+                var matchingNodes = rootNode.SelectNodes(selector);
+
+                if (prop.PropertyType.GetInterface(nameof(ICollection)) != null)
                 {
-                    var attr = prop.GetCustomAttribute<ViaXPathAttribute>();
-                    var selector = attr.Xpath;
-
-                    var matchingNodes = rootNode.SelectNodes(selector);
-
-                    if (prop.PropertyType.GetInterface(nameof(ICollection)) != null)
-                    {
-                        MapCollectionProperty(result, prop, matchingNodes);
-                    }
-                    else
-                    {
-                        var node = matchingNodes.FirstOrDefault();
-                        MapProperty(result, prop, node);
-                    }
+                    MapCollectionProperty(result, prop, matchingNodes);
+                }
+                else
+                {
+                    var node = matchingNodes.FirstOrDefault();
+                    MapProperty(result, prop, node.ToScrapeHtmlNode());
                 }
             }
         }
@@ -67,26 +61,23 @@ namespace DotScrape.HtmlAgilityPack
                                          .GetProperties()
                                          .Where(p => Attribute.IsDefined(p, typeof(ViaCssAttribute)));
 
-            if (mappableCssProps.Any())
+            foreach (var prop in mappableCssProps)
             {
-                foreach (var prop in mappableCssProps)
+                var attr = prop.GetCustomAttribute<ViaCssAttribute>();
+                var selector = attr.CssSelector;
+
+                var matchingNodes = rootNode.QuerySelectorAll(selector);
+
+                if (matchingNodes != null)
                 {
-                    var attr = prop.GetCustomAttribute<ViaCssAttribute>();
-                    var selector = attr.CssSelector;
-
-                    var matchingNodes = rootNode.QuerySelectorAll(selector);
-
-                    if (matchingNodes != null)
+                    if (prop.PropertyType.GetInterface(nameof(ICollection)) != null)
                     {
-                        if (prop.PropertyType.GetInterface(nameof(ICollection)) != null)
-                        {
-                            MapCollectionProperty(result, prop, matchingNodes);
-                        }
-                        else
-                        {
-                            var node = matchingNodes.FirstOrDefault();
-                            MapProperty(result, prop, node);
-                        }
+                        MapCollectionProperty(result, prop, matchingNodes);
+                    }
+                    else
+                    {
+                        var node = matchingNodes.FirstOrDefault();
+                        MapProperty(result, prop, node.ToScrapeHtmlNode());
                     }
                 }
             }
@@ -111,36 +102,15 @@ namespace DotScrape.HtmlAgilityPack
             collectionProp.SetValue(result, collection);
         }
 
-        private void MapProperty<TModel>(TModel result, PropertyInfo prop, HtmlNode node)
+        private void MapProperty<TModel>(TModel result, PropertyInfo prop, ScrapeHtmlNode node)
         {
             var stringData = node?.InnerText;
 
-            var fromAttributeAttribute = prop.GetCustomAttribute<FromAttributeAttribute>();
+            var transformAttributes = prop.GetCustomAttributes()
+                                          .Where(a => a.GetType().IsSubclassOf(typeof(TransformAttribute)));
 
-            // TODO: Use visitor pattern for attribute logic
-            if (fromAttributeAttribute != null)
-            {
-                var elementAttribute = node.GetAttributes().FirstOrDefault(a => a.Name == fromAttributeAttribute.AttributeName);
-
-                if (elementAttribute != null)
-                    stringData = elementAttribute.Value;
-            }
-
-            var trimStringAttribute = prop.GetCustomAttribute<TrimStringAttribute>();
-            if (trimStringAttribute != null)
-            {
-                stringData = stringData?.Trim();
-            }
-
-            var substringAttribute = prop.GetCustomAttribute<SubstringAttribute>();
-
-            if (substringAttribute != null)
-            {
-                var startIndex = substringAttribute.StartIndex >= 0 ? substringAttribute.StartIndex : 0;
-                var length = substringAttribute.Length >= 0 ? substringAttribute.Length : ((stringData?.Length ?? 0) - startIndex);
-
-                stringData = stringData.Substring(startIndex, length);
-            }
+            foreach (TransformAttribute attr in transformAttributes)
+                stringData = attr.Visit(stringData, node);
 
             if (prop.PropertyType == typeof(string))
             {
