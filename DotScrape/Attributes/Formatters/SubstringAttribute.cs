@@ -5,10 +5,10 @@ namespace DotScrape.Attributes.Formatters
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
     public sealed class SubstringAttribute : TransformAttribute
     {
-        public SubstringAttribute(int startIndex = -1, int endIndex = -1)
+        public SubstringAttribute(int startIndex = -1, int length = -1)
         {
             StartIndex = startIndex;
-            Length = endIndex;
+            Length = length;
         }
 
         public int StartIndex { get; }
