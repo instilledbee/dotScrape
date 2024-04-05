@@ -1,7 +1,15 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Title>DotScrape</Title>
+    <Version>0.1.0</Version>
+    <Company />
+    <Authors>Junvic Valdez</Authors>
+    <Description>A framework for mapping static web page data into strongly-typed models.</Description>
+    <Copyright>Copyright (c) Junvic Valdez</Copyright>
+    <PackageProjectUrl>https://github.com/instilledbee/dotScrape</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/instilledbee/dotScrape</RepositoryUrl>
   </PropertyGroup>
 
 </Project>

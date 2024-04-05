@@ -2,15 +2,20 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Title>DotScrape.HtmlAgilityPack</Title>
+    <Version>0.1.0</Version>
+    <Authors>Junvic Valdez</Authors>
+    <Company />
+    <Description>Use HtmlAgilityPack with DotScrape</Description>
+    <Copyright>Copyright (c) Junvic Valdez</Copyright>
+    <PackageProjectUrl>https://github.com/instilledbee/dotScrape</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/instilledbee/dotScrape</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DotScrape" Version="0.1.0" />
     <PackageReference Include="Fizzler.Systems.HtmlAgilityPack" Version="1.2.1" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.46" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\DotScrape\DotScrape.csproj" />
   </ItemGroup>
 
 </Project>
